@@ -1,0 +1,143 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String     @id @default(cuid())
+  name      String?
+  email     String?    @unique
+  password  String?
+  role      Role       @default(STAFF)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  auditLogs AuditLog[]
+}
+
+enum Role {
+  ADMIN
+  STAFF
+}
+
+model Category {
+  id        String          @id @default(cuid())
+  name      String          @unique
+  createdAt DateTime        @default(now())
+  items     InventoryItem[]
+}
+
+model Supplier {
+  id        String          @id @default(cuid())
+  name      String
+  phone     String?
+  email     String?
+  address   String?
+  createdAt DateTime        @default(now())
+  stockIns  StockIn[]
+  items     InventoryItem[]
+}
+
+model InventoryItem {
+  id                String             @id @default(cuid())
+  name              String
+  categoryId        String
+  category          Category           @relation(fields: [categoryId], references: [id])
+  unit              String
+  minStockLevel     Float              @default(0)
+  currentStock      Float              @default(0)
+  purchasePrice     Float              @default(0)
+  supplierId        String?
+  supplier          Supplier?          @relation(fields: [supplierId], references: [id])
+  notes             String?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  stockIns          StockIn[]
+  consumptions      Consumption[]
+  wastages          Wastage[]
+  recipeIngredients RecipeIngredient[]
+  auditLogs         AuditLog[]
+}
+
+model StockIn {
+  id            String        @id @default(cuid())
+  date          DateTime
+  itemId        String
+  item          InventoryItem @relation(fields: [itemId], references: [id])
+  quantity      Float
+  unit          String
+  rate          Float
+  supplierId    String?
+  supplier      Supplier?     @relation(fields: [supplierId], references: [id])
+  invoiceNumber String?
+  totalCost     Float
+  remarks       String?
+  createdAt     DateTime      @default(now())
+}
+
+model Consumption {
+  id        String        @id @default(cuid())
+  date      DateTime
+  itemId    String
+  item      InventoryItem @relation(fields: [itemId], references: [id])
+  quantity  Float
+  unit      String
+  notes     String?
+  source    String        @default("MANUAL")
+  recipeId  String?
+  createdAt DateTime      @default(now())
+}
+
+model Wastage {
+  id        String        @id @default(cuid())
+  date      DateTime
+  itemId    String
+  item      InventoryItem @relation(fields: [itemId], references: [id])
+  quantity  Float
+  unit      String
+  reason    String
+  createdAt DateTime      @default(now())
+}
+
+model Recipe {
+  id          String             @id @default(cuid())
+  name        String
+  category    String?
+  servings    Int                @default(1)
+  notes       String?
+  createdAt   DateTime           @default(now())
+  ingredients RecipeIngredient[]
+  saleLogs    SaleLog[]
+}
+
+model RecipeIngredient {
+  id       String        @id @default(cuid())
+  recipeId String
+  recipe   Recipe        @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  itemId   String
+  item     InventoryItem @relation(fields: [itemId], references: [id])
+  quantity Float
+  unit     String
+}
+
+model SaleLog {
+  id        String   @id @default(cuid())
+  date      DateTime
+  recipeId  String
+  recipe    Recipe   @relation(fields: [recipeId], references: [id])
+  quantity  Int
+  createdAt DateTime @default(now())
+}
+
+model AuditLog {
+  id        String         @id @default(cuid())
+  userId    String?
+  user      User?          @relation(fields: [userId], references: [id])
+  itemId    String?
+  item      InventoryItem? @relation(fields: [itemId], references: [id])
+  action    String
+  details   String
+  createdAt DateTime       @default(now())
+}
