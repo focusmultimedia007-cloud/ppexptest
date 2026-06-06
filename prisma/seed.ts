@@ -1,7 +1,13 @@
 import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { Pool } from "pg";
 import bcrypt from "bcryptjs";
 
-const prisma = new PrismaClient();
+const pool = new Pool({
+  connectionString: process.env.DIRECT_URL ?? process.env.DATABASE_URL,
+});
+const adapter = new PrismaPg(pool);
+const prisma = new PrismaClient({ adapter });
 
 async function main() {
   console.log("Seeding database...");
@@ -69,7 +75,11 @@ async function main() {
 
   const supplierMap: Record<string, string> = {};
   for (const s of suppliers) {
-    const supplier = await prisma.supplier.create({ data: s });
+    const supplier = await prisma.supplier.upsert({
+      where:  { name: s.name },
+      update: { phone: s.phone, email: s.email, address: s.address },
+      create: s,
+    });
     supplierMap[s.name] = supplier.id;
     console.log(`Created supplier: ${s.name}`);
   }
@@ -149,4 +159,5 @@ main()
   })
   .finally(async () => {
     await prisma.$disconnect();
+    await pool.end();
   });

@@ -31,7 +31,7 @@ model Category {
 
 model Supplier {
   id        String          @id @default(cuid())
-  name      String
+  name      String          @unique
   phone     String?
   email     String?
   address   String?
